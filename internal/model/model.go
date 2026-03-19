@@ -82,16 +82,34 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.loading = false
 		return m, nil
 
+	case PhaseChangeMsg:
+		return m.handlePhaseChange(msg)
+
+	case FocusChangeMsg:
+		m.focus = msg.Focus
+		return m, nil
+
+	case TicketUpdateMsg:
+		return m.handleTicketUpdate(msg)
+
+	case PopupOpenMsg:
+		return m.handlePopupOpen(msg)
+
+	case PopupCloseMsg:
+		if m.popup != nil {
+			m.popup.Close()
+		}
+		return m, nil
+
+	case ErrorMsg:
+		m.errors = append(m.errors, msg.Err.Error())
+		return m, nil
+
 	case tea.KeyMsg:
 		return m.handleKeyPress(msg)
 
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		if m.kanban != nil {
-			m.kanban.SetSize(m.width, m.height)
-		}
-		return m, nil
+		return m.handleWindowResize(msg)
 
 	case spinnerTickMsg:
 		if m.chat != nil && m.chat.IsStreaming() {
@@ -102,6 +120,50 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	return m, nil
+}
+
+func (m Model) handlePhaseChange(msg PhaseChangeMsg) (tea.Model, tea.Cmd) {
+	newPhase := state.Phase(msg.Phase)
+	if !newPhase.IsValid() {
+		return m, nil
+	}
+	m.phase = newPhase
+	return m, nil
+}
+
+func (m Model) handleTicketUpdate(msg TicketUpdateMsg) (tea.Model, tea.Cmd) {
+	if m.orchestrator != nil {
+		tickets, _ := m.orchestrator.GetTickets()
+		if m.kanban != nil {
+			m.kanban.SetTickets(tickets)
+		}
+	}
+	return m, nil
+}
+
+func (m Model) handlePopupOpen(msg PopupOpenMsg) (tea.Model, tea.Cmd) {
+	if m.orchestrator != nil && m.popup != nil {
+		tickets, err := m.orchestrator.GetTickets()
+		if err != nil {
+			return m, nil
+		}
+		for _, t := range tickets {
+			if t.ID == msg.TicketID {
+				m.popup.Open(&t)
+				break
+			}
+		}
+	}
+	return m, nil
+}
+
+func (m Model) handleWindowResize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
+	m.width = msg.Width
+	m.height = msg.Height
+	if m.kanban != nil {
+		m.kanban.SetSize(m.width, m.height)
+	}
 	return m, nil
 }
 

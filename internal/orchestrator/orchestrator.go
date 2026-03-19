@@ -149,3 +149,54 @@ func (o *Orchestrator) RunPlan(ctx context.Context) (<-chan crush.StreamEvent, e
 
 	return events, nil
 }
+
+type ValidationResult struct {
+	IsValid      bool
+	ExecutionOrder []string
+	Errors       []string
+	Warnings     []string
+}
+
+func (o *Orchestrator) RunValidate(ctx context.Context) (<-chan crush.StreamEvent, error) {
+	if o.crushRunner == nil {
+		o.crushRunner = crush.NewRunner(o.crushPath, o.projectDir)
+	}
+
+	prompt := "use the validate skill to check the ticket plan"
+
+	events, err := o.crushRunner.Run(ctx, prompt, crush.RunOptions{Quiet: false})
+	if err != nil {
+		return nil, fmt.Errorf("failed to run validation: %w", err)
+	}
+
+	return events, nil
+}
+
+func (o *Orchestrator) GetValidationResult() (*ValidationResult, error) {
+	tickets, err := o.GetTickets()
+	if err != nil {
+		return nil, err
+	}
+
+	result := &ValidationResult{
+		IsValid:        true,
+		ExecutionOrder: []string{},
+		Errors:         []string{},
+		Warnings:       []string{},
+	}
+
+	order, err := o.ticketManager.GetExecutionOrder()
+	if err != nil {
+		result.Warnings = append(result.Warnings, err.Error())
+	} else {
+		for _, level := range order {
+			result.ExecutionOrder = append(result.ExecutionOrder, level...)
+		}
+	}
+
+	if len(tickets) == 0 {
+		result.Warnings = append(result.Warnings, "no tickets found")
+	}
+
+	return result, nil
+}

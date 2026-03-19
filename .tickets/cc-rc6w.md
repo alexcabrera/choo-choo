@@ -1,6 +1,6 @@
 ---
 id: cc-rc6w
-status: open
+status: closed
 deps: [cc-k4cx, cc-08pk]
 links: []
 created: 2026-03-18T23:21:21Z

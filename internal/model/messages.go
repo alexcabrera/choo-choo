@@ -23,3 +23,7 @@ type PopupOpenMsg struct {
 }
 
 type PopupCloseMsg struct{}
+
+type FocusChangeMsg struct {
+	Focus FocusArea
+}

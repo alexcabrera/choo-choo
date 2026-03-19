@@ -1,6 +1,6 @@
 ---
 id: cc-upfl
-status: open
+status: closed
 deps: [cc-k25a]
 links: []
 created: 2026-03-19T00:37:20Z
