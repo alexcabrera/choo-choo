@@ -46,3 +46,26 @@ func NewPopupModel() *PopupModel {
 		},
 	}
 }
+
+func (m *PopupModel) Open(t *ticket.Ticket) {
+	m.ticket = t
+	m.activeTab = TabDetails
+	m.open = true
+	m.tabs[0].Content = formatTicketDetails(t)
+}
+
+func (m *PopupModel) Close() {
+	m.open = false
+	m.ticket = nil
+	m.activeTab = TabDetails
+	for i := range m.tabs {
+		m.tabs[i].Content = ""
+	}
+}
+
+func formatTicketDetails(t *ticket.Ticket) string {
+	if t == nil {
+		return ""
+	}
+	return "ID: " + t.ID + "\nTitle: " + t.Title + "\nStatus: " + string(t.Status)
+}

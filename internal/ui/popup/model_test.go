@@ -1,6 +1,10 @@
 package popup
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/alexcabrera/choo-choo/internal/ticket"
+)
 
 func TestTabString(t *testing.T) {
 	tests := []struct {
@@ -48,5 +52,45 @@ func TestNewPopupModel(t *testing.T) {
 	}
 	if len(m.tabs) != 3 {
 		t.Errorf("NewPopupModel().tabs should have 3 elements, got %d", len(m.tabs))
+	}
+}
+
+func TestPopupModelOpen(t *testing.T) {
+	m := NewPopupModel()
+	tk := &ticket.Ticket{
+		ID:     "T-001",
+		Title:  "Test Ticket",
+		Status: ticket.StatusOpen,
+	}
+	m.Open(tk)
+
+	if !m.open {
+		t.Error("Open() should set open to true")
+	}
+	if m.ticket != tk {
+		t.Error("Open() should set ticket")
+	}
+	if m.activeTab != TabDetails {
+		t.Errorf("Open() activeTab = %v, want %v", m.activeTab, TabDetails)
+	}
+	if m.tabs[0].Content == "" {
+		t.Error("Open() should populate Details tab content")
+	}
+}
+
+func TestPopupModelClose(t *testing.T) {
+	m := NewPopupModel()
+	tk := &ticket.Ticket{ID: "T-001"}
+	m.Open(tk)
+	m.Close()
+
+	if m.open {
+		t.Error("Close() should set open to false")
+	}
+	if m.ticket != nil {
+		t.Error("Close() should clear ticket")
+	}
+	if m.activeTab != TabDetails {
+		t.Errorf("Close() activeTab = %v, want %v", m.activeTab, TabDetails)
 	}
 }

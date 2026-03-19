@@ -1,6 +1,10 @@
 package kanban
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/alexcabrera/choo-choo/internal/ticket"
+)
 
 func TestNewKanbanModel(t *testing.T) {
 	m := NewKanbanModel()
@@ -17,5 +21,26 @@ func TestNewKanbanModel(t *testing.T) {
 		if col == nil {
 			t.Errorf("columns[%d] is nil", i)
 		}
+	}
+}
+
+func TestSetTickets(t *testing.T) {
+	m := NewKanbanModel()
+	tickets := []ticket.Ticket{
+		{ID: "T-001", Status: ticket.StatusOpen},
+		{ID: "T-002", Status: ticket.StatusInProgress},
+		{ID: "T-003", Status: ticket.StatusClosed},
+		{ID: "T-004", Status: ticket.StatusOpen},
+	}
+	m.SetTickets(tickets)
+
+	if len(m.columns[ColumnTodo]) != 2 {
+		t.Errorf("TODO column has %d tickets, want 2", len(m.columns[ColumnTodo]))
+	}
+	if len(m.columns[ColumnDoing]) != 1 {
+		t.Errorf("DOING column has %d tickets, want 1", len(m.columns[ColumnDoing]))
+	}
+	if len(m.columns[ColumnDone]) != 1 {
+		t.Errorf("DONE column has %d tickets, want 1", len(m.columns[ColumnDone]))
 	}
 }
