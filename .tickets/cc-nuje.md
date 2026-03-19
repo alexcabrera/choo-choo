@@ -1,6 +1,6 @@
 ---
 id: cc-nuje
-status: open
+status: closed
 deps: [cc-xmnh, cc-l2w6]
 links: []
 created: 2026-03-19T00:42:06Z
