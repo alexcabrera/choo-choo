@@ -30,3 +30,10 @@ type ChatModel struct {
 	messages  []ChatMessage
 	streaming bool
 }
+
+func NewChatModel() *ChatModel {
+	return &ChatModel{
+		messages:  []ChatMessage{},
+		streaming: false,
+	}
+}

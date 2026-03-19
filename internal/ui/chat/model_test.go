@@ -40,3 +40,19 @@ func TestChatModelFields(t *testing.T) {
 		t.Error("ChatModel.streaming should be false initially")
 	}
 }
+
+func TestNewChatModel(t *testing.T) {
+	m := NewChatModel()
+	if m == nil {
+		t.Fatal("NewChatModel() returned nil")
+	}
+	if m.messages == nil {
+		t.Error("NewChatModel().messages should not be nil")
+	}
+	if len(m.messages) != 0 {
+		t.Errorf("NewChatModel().messages should be empty, got %d", len(m.messages))
+	}
+	if m.streaming {
+		t.Error("NewChatModel().streaming should be false")
+	}
+}

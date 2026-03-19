@@ -1,6 +1,6 @@
 ---
 id: cc-0aim
-status: open
+status: closed
 deps: [cc-gjz5]
 links: []
 created: 2026-03-18T23:21:46Z
