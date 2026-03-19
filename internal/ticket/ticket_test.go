@@ -3,6 +3,7 @@ package ticket
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -126,5 +127,60 @@ Some description here.
 	}
 	if tickets[0].ID != "T-001" {
 		t.Errorf("List()[0].ID = %q, want %q", tickets[0].ID, "T-001")
+	}
+}
+
+func TestTicketManagerSetStatus(t *testing.T) {
+	tmpDir := t.TempDir()
+	ticketContent := `---
+id: T-001
+status: open
+deps: []
+---
+# Test
+`
+	path := filepath.Join(tmpDir, "T-001.md")
+	if err := os.WriteFile(path, []byte(ticketContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	tm := NewTicketManager("tk", tmpDir)
+	if err := tm.SetStatus("T-001", StatusInProgress); err != nil {
+		t.Fatalf("SetStatus() error = %v", err)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "status: in_progress") {
+		t.Errorf("SetStatus did not update status, content:\n%s", string(data))
+	}
+}
+
+func TestTicketManagerAddNote(t *testing.T) {
+	tmpDir := t.TempDir()
+	ticketContent := `---
+id: T-001
+status: open
+---
+# Test
+`
+	path := filepath.Join(tmpDir, "T-001.md")
+	if err := os.WriteFile(path, []byte(ticketContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	tm := NewTicketManager("tk", tmpDir)
+	if err := tm.AddNote("T-001", "added a note"); err != nil {
+		t.Fatalf("AddNote() error = %v", err)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "added a note") {
+		t.Errorf("AddNote did not append note, content:\n%s", string(data))
 	}
 }

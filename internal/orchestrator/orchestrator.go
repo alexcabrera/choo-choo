@@ -2,13 +2,15 @@ package orchestrator
 
 import (
 	"github.com/alexcabrera/choo-choo/internal/state"
+	"github.com/alexcabrera/choo-choo/internal/ticket"
 )
 
 type Orchestrator struct {
-	projectDir string
-	state      *state.State
-	crushPath  string
-	tkPath     string
+	projectDir     string
+	state          *state.State
+	crushPath      string
+	tkPath         string
+	ticketManager  *ticket.TicketManager
 }
 
 func NewOrchestrator(projectDir string) *Orchestrator {
@@ -24,4 +26,12 @@ func (o *Orchestrator) GetPhase() state.Phase {
 		return state.PhaseInit
 	}
 	return o.state.Phase
+}
+
+func (o *Orchestrator) GetTickets() ([]ticket.Ticket, error) {
+	if o.ticketManager == nil {
+		ticketsDir := o.projectDir + "/.tickets"
+		o.ticketManager = ticket.NewTicketManager(o.tkPath, ticketsDir)
+	}
+	return o.ticketManager.List()
 }

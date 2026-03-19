@@ -80,3 +80,55 @@ func (tm *TicketManager) loadTicketFile(path string) (*Ticket, error) {
 
 	return &t, nil
 }
+
+func (tm *TicketManager) SetStatus(id string, status Status) error {
+	path := filepath.Join(tm.ticketsDir, id+".md")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("failed to read ticket file: %w", err)
+	}
+
+	content := string(data)
+	lines := strings.Split(content, "\n")
+	var newLines []string
+	inFrontmatter := false
+	frontmatterDone := false
+
+	for _, line := range lines {
+		if line == "---" {
+			if !inFrontmatter {
+				inFrontmatter = true
+				newLines = append(newLines, line)
+				continue
+			}
+			frontmatterDone = true
+		}
+
+		if inFrontmatter && !frontmatterDone {
+			if strings.HasPrefix(line, "status:") {
+				newLines = append(newLines, "status: "+string(status))
+				continue
+			}
+		}
+
+		newLines = append(newLines, line)
+	}
+
+	newContent := strings.Join(newLines, "\n")
+	return os.WriteFile(path, []byte(newContent), 0644)
+}
+
+func (tm *TicketManager) AddNote(id, note string) error {
+	path := filepath.Join(tm.ticketsDir, id+".md")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("failed to read ticket file: %w", err)
+	}
+
+	content := string(data)
+	timestamp := time.Now().Format("2006-01-02 15:04:05")
+	newNote := fmt.Sprintf("\n**%s**: %s", timestamp, note)
+
+	newContent := content + newNote
+	return os.WriteFile(path, []byte(newContent), 0644)
+}
