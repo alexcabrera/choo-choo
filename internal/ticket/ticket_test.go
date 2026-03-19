@@ -49,3 +49,16 @@ func TestTicketFields(t *testing.T) {
 		t.Errorf("Ticket.Accepts length = %d, want 2", len(ticket.Accepts))
 	}
 }
+
+func TestNewTicketManager(t *testing.T) {
+	tm := NewTicketManager("/usr/local/bin/tk", "/workspace/.tickets")
+	if tm == nil {
+		t.Fatal("NewTicketManager() returned nil")
+	}
+	if tm.tkPath != "/usr/local/bin/tk" {
+		t.Errorf("tkPath = %q, want %q", tm.tkPath, "/usr/local/bin/tk")
+	}
+	if tm.ticketsDir != "/workspace/.tickets" {
+		t.Errorf("ticketsDir = %q, want %q", tm.ticketsDir, "/workspace/.tickets")
+	}
+}
