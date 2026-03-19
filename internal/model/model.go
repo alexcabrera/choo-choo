@@ -3,7 +3,11 @@ package model
 import (
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/alexcabrera/choo-choo/internal/orchestrator"
 	"github.com/alexcabrera/choo-choo/internal/state"
+	"github.com/alexcabrera/choo-choo/internal/ui/chat"
+	"github.com/alexcabrera/choo-choo/internal/ui/kanban"
+	"github.com/alexcabrera/choo-choo/internal/ui/popup"
 )
 
 type FocusArea int
@@ -16,12 +20,16 @@ const (
 )
 
 type Model struct {
-	phase       state.Phase
-	width       int
-	height      int
-	focus       FocusArea
-	loading     bool
-	errors      []string
+	orchestrator *orchestrator.Orchestrator
+	chat         *chat.ChatModel
+	kanban       *kanban.KanbanModel
+	popup        *popup.PopupModel
+	phase        state.Phase
+	width        int
+	height       int
+	focus        FocusArea
+	loading      bool
+	errors       []string
 }
 
 func New() Model {
@@ -31,6 +39,16 @@ func New() Model {
 		loading: false,
 		errors:  []string{},
 	}
+}
+
+func InitialModel(orch *orchestrator.Orchestrator) Model {
+	m := New()
+	m.orchestrator = orch
+	m.chat = chat.NewChatModel()
+	m.kanban = kanban.NewKanbanModel()
+	m.popup = popup.NewPopupModel()
+	m.phase = orch.GetPhase()
+	return m
 }
 
 func (m Model) Init() tea.Cmd {
