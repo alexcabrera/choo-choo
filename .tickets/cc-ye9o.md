@@ -1,6 +1,6 @@
 ---
 id: cc-ye9o
-status: open
+status: closed
 deps: [cc-zoev]
 links: []
 created: 2026-03-18T23:22:02Z
