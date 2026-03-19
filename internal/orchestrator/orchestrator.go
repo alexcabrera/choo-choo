@@ -101,3 +101,14 @@ func (o *Orchestrator) GetTickets() ([]ticket.Ticket, error) {
 	}
 	return o.ticketManager.List()
 }
+
+func (o *Orchestrator) ReadArtifact(relativePath string) (string, error) {
+	fullPath := filepath.Join(o.projectDir, relativePath)
+
+	data, err := os.ReadFile(fullPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read artifact %s: %w", relativePath, err)
+	}
+
+	return string(data), nil
+}

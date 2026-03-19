@@ -53,3 +53,47 @@ var (
 				Foreground(ColorSecondary).
 				Padding(0, 2)
 )
+
+func HorizontalJoin(width int, elements ...string) string {
+	return lipgloss.JoinHorizontal(lipgloss.Top, elements...)
+}
+
+func VerticalJoin(height int, elements ...string) string {
+	return lipgloss.JoinVertical(lipgloss.Left, elements...)
+}
+
+func WithBorder(style lipgloss.Style, content string, width, height int) string {
+	return style.Width(width).Height(height).Render(content)
+}
+
+func WithMargin(style lipgloss.Style, content string) string {
+	return style.Render(content)
+}
+
+func WithPadding(style lipgloss.Style, content string) string {
+	return style.Render(content)
+}
+
+func LayoutColumns(totalWidth int, columns ...string) string {
+	if len(columns) == 0 {
+		return ""
+	}
+	colWidth := totalWidth / len(columns)
+	styledCols := make([]string, len(columns))
+	for i, col := range columns {
+		styledCols[i] = lipgloss.NewStyle().Width(colWidth).Render(col)
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Top, styledCols...)
+}
+
+func LayoutRows(totalHeight int, rows ...string) string {
+	if len(rows) == 0 {
+		return ""
+	}
+	rowHeight := totalHeight / len(rows)
+	styledRows := make([]string, len(rows))
+	for i, row := range rows {
+		styledRows[i] = lipgloss.NewStyle().Height(rowHeight).Render(row)
+	}
+	return lipgloss.JoinVertical(lipgloss.Left, styledRows...)
+}

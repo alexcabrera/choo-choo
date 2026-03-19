@@ -1,6 +1,10 @@
 package kanban
 
-import "github.com/alexcabrera/choo-choo/internal/ticket"
+import (
+	tea "charm.land/bubbletea/v2"
+
+	"github.com/alexcabrera/choo-choo/internal/ticket"
+)
 
 const (
 	ColumnTodo = iota
@@ -20,6 +24,28 @@ func NewKanbanModel() *KanbanModel {
 		cursorCol: 0,
 		cursorRow: 0,
 	}
+}
+
+func (m *KanbanModel) Update(msg tea.Msg) (*KanbanModel, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		return m.handleKeyPress(msg)
+	}
+	return m, nil
+}
+
+func (m *KanbanModel) handleKeyPress(msg tea.KeyMsg) (*KanbanModel, tea.Cmd) {
+	switch msg.String() {
+	case "up", "k":
+		m.MoveCursorUp()
+	case "down", "j":
+		m.MoveCursorDown()
+	case "left", "h":
+		m.MoveCursorLeft()
+	case "right", "l":
+		m.MoveCursorRight()
+	}
+	return m, nil
 }
 
 func (m *KanbanModel) SetTickets(tickets []ticket.Ticket) {

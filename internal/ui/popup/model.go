@@ -89,3 +89,17 @@ func (m *PopupModel) PrevTab() {
 func (m *PopupModel) IsOpen() bool {
 	return m.open
 }
+
+func (m *PopupModel) HandleScroll(direction int) {
+	// Scroll handling for content viewport
+	// Positive direction = scroll down, negative = scroll up
+	// Actual scroll offset managed by rendering layer
+}
+
+func (m *PopupModel) GetActiveTab() Tab {
+	return m.activeTab
+}
+
+func (m *PopupModel) GetContent() string {
+	return m.tabs[m.activeTab].Content
+}

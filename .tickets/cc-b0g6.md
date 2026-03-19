@@ -1,6 +1,6 @@
 ---
 id: cc-b0g6
-status: open
+status: closed
 deps: [cc-lpkj]
 links: []
 created: 2026-03-19T00:40:52Z
