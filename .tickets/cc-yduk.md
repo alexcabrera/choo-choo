@@ -1,6 +1,6 @@
 ---
 id: cc-yduk
-status: open
+status: closed
 deps: []
 links: []
 created: 2026-03-19T00:41:53Z
