@@ -94,3 +94,47 @@ func TestPopupModelClose(t *testing.T) {
 		t.Errorf("Close() activeTab = %v, want %v", m.activeTab, TabDetails)
 	}
 }
+
+func TestPopupModelSetLog(t *testing.T) {
+	m := NewPopupModel()
+	m.SetLog("line 1\nline 2\nline 3")
+	if m.tabs[TabLog].Content != "line 1\nline 2\nline 3" {
+		t.Errorf("SetLog: content = %q, want %q", m.tabs[TabLog].Content, "line 1\nline 2\nline 3")
+	}
+}
+
+func TestPopupModelSetDiff(t *testing.T) {
+	m := NewPopupModel()
+	m.SetDiff("+added line\n-removed line")
+	if m.tabs[TabDiff].Content != "+added line\n-removed line" {
+		t.Errorf("SetDiff: content = %q, want %q", m.tabs[TabDiff].Content, "+added line\n-removed line")
+	}
+}
+
+func TestPopupModelNextPrevTab(t *testing.T) {
+	m := NewPopupModel()
+
+	if m.activeTab != TabDetails {
+		t.Errorf("initial activeTab = %v, want %v", m.activeTab, TabDetails)
+	}
+
+	m.NextTab()
+	if m.activeTab != TabLog {
+		t.Errorf("NextTab: activeTab = %v, want %v", m.activeTab, TabLog)
+	}
+
+	m.NextTab()
+	if m.activeTab != TabDiff {
+		t.Errorf("NextTab: activeTab = %v, want %v", m.activeTab, TabDiff)
+	}
+
+	m.NextTab()
+	if m.activeTab != TabDetails {
+		t.Errorf("NextTab wrap: activeTab = %v, want %v", m.activeTab, TabDetails)
+	}
+
+	m.PrevTab()
+	if m.activeTab != TabDiff {
+		t.Errorf("PrevTab: activeTab = %v, want %v", m.activeTab, TabDiff)
+	}
+}

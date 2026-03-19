@@ -69,3 +69,19 @@ func formatTicketDetails(t *ticket.Ticket) string {
 	}
 	return "ID: " + t.ID + "\nTitle: " + t.Title + "\nStatus: " + string(t.Status)
 }
+
+func (m *PopupModel) SetLog(log string) {
+	m.tabs[TabLog].Content = log
+}
+
+func (m *PopupModel) SetDiff(diff string) {
+	m.tabs[TabDiff].Content = diff
+}
+
+func (m *PopupModel) NextTab() {
+	m.activeTab = (m.activeTab + 1) % 3
+}
+
+func (m *PopupModel) PrevTab() {
+	m.activeTab = (m.activeTab + 2) % 3
+}

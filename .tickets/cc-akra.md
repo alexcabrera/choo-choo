@@ -1,6 +1,6 @@
 ---
 id: cc-akra
-status: open
+status: closed
 deps: [cc-4rcv]
 links: []
 created: 2026-03-19T00:39:40Z
