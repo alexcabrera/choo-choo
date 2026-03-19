@@ -200,3 +200,87 @@ func (o *Orchestrator) GetValidationResult() (*ValidationResult, error) {
 
 	return result, nil
 }
+
+type TicketEvent struct {
+	TicketID string
+	Status   string
+	Error    error
+}
+
+func (o *Orchestrator) RunExecute(ctx context.Context, parallel bool) (<-chan TicketEvent, error) {
+	if o.crushRunner == nil {
+		o.crushRunner = crush.NewRunner(o.crushPath, o.projectDir)
+	}
+
+	o.state.SetPhase(state.PhaseExecution)
+
+	order, err := o.ticketManager.GetExecutionOrder()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get execution order: %w", err)
+	}
+
+	events := make(chan TicketEvent, 100)
+
+	go func() {
+		defer close(events)
+
+		for _, level := range order {
+			if parallel {
+				o.executeLevelParallel(ctx, level, events)
+			} else {
+				o.executeLevelSequential(ctx, level, events)
+			}
+		}
+	}()
+
+	return events, nil
+}
+
+func (o *Orchestrator) executeLevelSequential(ctx context.Context, level []string, events chan<- TicketEvent) {
+	for _, ticketID := range level {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			events <- TicketEvent{TicketID: ticketID, Status: "executing"}
+			prompt := fmt.Sprintf("use the execute skill to implement ticket %s", ticketID)
+			_, err := o.crushRunner.Run(ctx, prompt, crush.RunOptions{Yolo: true})
+			if err != nil {
+				events <- TicketEvent{TicketID: ticketID, Status: "failed", Error: err}
+			} else {
+				events <- TicketEvent{TicketID: ticketID, Status: "completed"}
+			}
+		}
+	}
+}
+
+func (o *Orchestrator) executeLevelParallel(ctx context.Context, level []string, events chan<- TicketEvent) {
+	type result struct {
+		ticketID string
+		err      error
+	}
+
+	results := make(chan result, len(level))
+
+	for _, ticketID := range level {
+		go func(id string) {
+			events <- TicketEvent{TicketID: id, Status: "executing"}
+			prompt := fmt.Sprintf("use the execute skill to implement ticket %s", id)
+			_, err := o.crushRunner.Run(ctx, prompt, crush.RunOptions{Yolo: true})
+			results <- result{ticketID: id, err: err}
+		}(ticketID)
+	}
+
+	for range level {
+		select {
+		case <-ctx.Done():
+			return
+		case r := <-results:
+			if r.err != nil {
+				events <- TicketEvent{TicketID: r.ticketID, Status: "failed", Error: r.err}
+			} else {
+				events <- TicketEvent{TicketID: r.ticketID, Status: "completed"}
+			}
+		}
+	}
+}
