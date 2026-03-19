@@ -37,3 +37,16 @@ func NewChatModel() *ChatModel {
 		streaming: false,
 	}
 }
+
+func (m *ChatModel) AddMessage(role Role, content string) {
+	msg := ChatMessage{
+		Role:      role,
+		Content:   content,
+		Timestamp: time.Now().UTC(),
+	}
+	m.messages = append(m.messages, msg)
+}
+
+func (m *ChatModel) SetStreaming(streaming bool) {
+	m.streaming = streaming
+}

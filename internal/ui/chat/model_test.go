@@ -56,3 +56,35 @@ func TestNewChatModel(t *testing.T) {
 		t.Error("NewChatModel().streaming should be false")
 	}
 }
+
+func TestChatModelAddMessage(t *testing.T) {
+	m := NewChatModel()
+	m.AddMessage(RoleUser, "Hello")
+	if len(m.messages) != 1 {
+		t.Fatalf("AddMessage: len(messages) = %d, want 1", len(m.messages))
+	}
+	if m.messages[0].Role != RoleUser {
+		t.Errorf("AddMessage: Role = %v, want %v", m.messages[0].Role, RoleUser)
+	}
+	if m.messages[0].Content != "Hello" {
+		t.Errorf("AddMessage: Content = %q, want %q", m.messages[0].Content, "Hello")
+	}
+	if m.messages[0].Timestamp.IsZero() {
+		t.Error("AddMessage: Timestamp should be set")
+	}
+}
+
+func TestChatModelSetStreaming(t *testing.T) {
+	m := NewChatModel()
+	if m.streaming {
+		t.Error("streaming should start as false")
+	}
+	m.SetStreaming(true)
+	if !m.streaming {
+		t.Error("SetStreaming(true): streaming should be true")
+	}
+	m.SetStreaming(false)
+	if m.streaming {
+		t.Error("SetStreaming(false): streaming should be false")
+	}
+}
