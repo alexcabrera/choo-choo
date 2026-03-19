@@ -132,3 +132,20 @@ func (o *Orchestrator) RunDesign(ctx context.Context) (<-chan crush.StreamEvent,
 
 	return events, nil
 }
+
+func (o *Orchestrator) RunPlan(ctx context.Context) (<-chan crush.StreamEvent, error) {
+	if o.crushRunner == nil {
+		o.crushRunner = crush.NewRunner(o.crushPath, o.projectDir)
+	}
+
+	o.state.SetPhase(state.PhasePlan)
+
+	prompt := "use the plan skill to create tickets from the specification"
+
+	events, err := o.crushRunner.Run(ctx, prompt, crush.RunOptions{Quiet: false})
+	if err != nil {
+		return nil, fmt.Errorf("failed to start plan phase: %w", err)
+	}
+
+	return events, nil
+}

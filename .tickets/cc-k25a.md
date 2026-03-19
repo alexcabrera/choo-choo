@@ -1,6 +1,6 @@
 ---
 id: cc-k25a
-status: open
+status: closed
 deps: [cc-38a0, cc-c1fl]
 links: []
 created: 2026-03-19T00:37:19Z
