@@ -1,6 +1,8 @@
 package chat
 
 import (
+	"fmt"
+	"strings"
 	tea "charm.land/bubbletea/v2"
 	"time"
 )
@@ -151,4 +153,31 @@ func (m *ChatModel) handleKeyPress(msg tea.KeyMsg) (*ChatModel, tea.Cmd) {
 		m.HandleTextInput(msg.String())
 	}
 	return m, nil
+}
+
+func (m *ChatModel) View() tea.View {
+	var b strings.Builder
+
+	b.WriteString("=== Chat ===\n\n")
+
+	for _, msg := range m.messages {
+		prefix := "[User]"
+		if msg.Role == RoleAssistant {
+			prefix = "[Assistant]"
+		}
+		b.WriteString(fmt.Sprintf("%s %s\n", prefix, msg.Content))
+	}
+
+	if m.streaming {
+		spinner := []string{"|", "/", "-", "\\"}
+		b.WriteString(fmt.Sprintf("\n[Assistant] %s Thinking...", spinner[m.spinnerFrame]))
+	}
+
+	b.WriteString("\n\n> " + m.input + "_")
+
+	return tea.NewView(b.String())
+}
+
+func (m *ChatModel) GetMessages() []ChatMessage {
+	return m.messages
 }

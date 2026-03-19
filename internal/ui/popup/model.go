@@ -1,6 +1,9 @@
 package popup
 
 import (
+	"fmt"
+	"strings"
+
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/alexcabrera/choo-choo/internal/ticket"
@@ -130,4 +133,61 @@ func (m *PopupModel) handleKeyPress(msg tea.KeyMsg) (*PopupModel, tea.Cmd) {
 		m.Close()
 	}
 	return m, nil
+}
+
+func (m *PopupModel) View(width, height int) tea.View {
+	var b strings.Builder
+
+	popupWidth := width * 2 / 3
+	if popupWidth < 40 {
+		popupWidth = 40
+	}
+	popupHeight := height * 2 / 3
+	if popupHeight < 10 {
+		popupHeight = 10
+	}
+
+	tabBar := m.renderTabBar(popupWidth)
+	b.WriteString(tabBar + "\n")
+	b.WriteString(strings.Repeat("-", popupWidth) + "\n")
+
+	content := m.GetContent()
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
+		if i >= popupHeight-4 {
+			break
+		}
+		if len(line) > popupWidth-2 {
+			line = line[:popupWidth-5] + "..."
+		}
+		b.WriteString(line + "\n")
+	}
+
+	border := "+" + strings.Repeat("-", popupWidth-2) + "+"
+	contentView := b.String()
+
+	var fullView strings.Builder
+	for i := 0; i < (height-popupHeight)/2; i++ {
+		fullView.WriteString("\n")
+	}
+	fullView.WriteString(border + "\n")
+	for _, line := range strings.Split(contentView, "\n") {
+		padded := fmt.Sprintf("|%-*s|", popupWidth-2, line)
+		fullView.WriteString(padded + "\n")
+	}
+	fullView.WriteString(border)
+
+	return tea.NewView(fullView.String())
+}
+
+func (m *PopupModel) renderTabBar(width int) string {
+	var tabs []string
+	for i, tab := range m.tabs {
+		style := "  %s  "
+		if Tab(i) == m.activeTab {
+			style = "[%s]"
+		}
+		tabs = append(tabs, fmt.Sprintf(style, tab.Title))
+	}
+	return strings.Join(tabs, " | ")
 }

@@ -1,6 +1,6 @@
 ---
 id: cc-stkc
-status: open
+status: closed
 deps: [cc-ktcb]
 links: []
 created: 2026-03-18T23:22:18Z

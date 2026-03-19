@@ -1,11 +1,13 @@
 package orchestrator
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 
+	"github.com/alexcabrera/choo-choo/internal/crush"
 	"github.com/alexcabrera/choo-choo/internal/state"
 	"github.com/alexcabrera/choo-choo/internal/ticket"
 )
@@ -16,6 +18,7 @@ type Orchestrator struct {
 	crushPath     string
 	tkPath        string
 	ticketManager *ticket.TicketManager
+	crushRunner   *crush.CrushRunner
 }
 
 func NewOrchestrator(projectDir string) *Orchestrator {
@@ -111,4 +114,21 @@ func (o *Orchestrator) ReadArtifact(relativePath string) (string, error) {
 	}
 
 	return string(data), nil
+}
+
+func (o *Orchestrator) RunDesign(ctx context.Context) (<-chan crush.StreamEvent, error) {
+	if o.crushRunner == nil {
+		o.crushRunner = crush.NewRunner(o.crushPath, o.projectDir)
+	}
+
+	o.state.SetPhase(state.PhaseDesign)
+
+	prompt := "use the design skill to create a specification for this project"
+
+	events, err := o.crushRunner.Run(ctx, prompt, crush.RunOptions{Quiet: false})
+	if err != nil {
+		return nil, fmt.Errorf("failed to start design phase: %w", err)
+	}
+
+	return events, nil
 }
