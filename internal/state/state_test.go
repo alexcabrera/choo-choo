@@ -33,3 +33,27 @@ func TestStateYAMLTags(t *testing.T) {
 		t.Errorf("State.Phase = %v, want %v", s.Phase, PhaseDesign)
 	}
 }
+
+func TestStateSetters(t *testing.T) {
+	s := NewState()
+
+	s.SetPhase(PhaseExecution)
+	if s.Phase != PhaseExecution {
+		t.Errorf("SetPhase: Phase = %v, want %v", s.Phase, PhaseExecution)
+	}
+
+	s.SetFocus("T-123")
+	if s.Focus != "T-123" {
+		t.Errorf("SetFocus: Focus = %q, want %q", s.Focus, "T-123")
+	}
+
+	s.AddLearning("learned something")
+	if len(s.Learnings) != 1 || s.Learnings[0] != "learned something" {
+		t.Errorf("AddLearning: Learnings = %v, want %v", s.Learnings, []string{"learned something"})
+	}
+
+	s.AddDecision("decided something")
+	if len(s.Decisions) != 1 || s.Decisions[0] != "decided something" {
+		t.Errorf("AddDecision: Decisions = %v, want %v", s.Decisions, []string{"decided something"})
+	}
+}
