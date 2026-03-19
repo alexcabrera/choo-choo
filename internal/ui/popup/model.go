@@ -85,3 +85,7 @@ func (m *PopupModel) NextTab() {
 func (m *PopupModel) PrevTab() {
 	m.activeTab = (m.activeTab + 2) % 3
 }
+
+func (m *PopupModel) IsOpen() bool {
+	return m.open
+}
