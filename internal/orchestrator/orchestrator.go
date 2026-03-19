@@ -121,6 +121,9 @@ func (o *Orchestrator) RunDesign(ctx context.Context) (<-chan crush.StreamEvent,
 		o.crushRunner = crush.NewRunner(o.crushPath, o.projectDir)
 	}
 
+	if o.state == nil {
+		o.state = state.NewState()
+	}
 	o.state.SetPhase(state.PhaseDesign)
 
 	prompt := "use the design skill to create a specification for this project"
@@ -138,6 +141,9 @@ func (o *Orchestrator) RunPlan(ctx context.Context) (<-chan crush.StreamEvent, e
 		o.crushRunner = crush.NewRunner(o.crushPath, o.projectDir)
 	}
 
+	if o.state == nil {
+		o.state = state.NewState()
+	}
 	o.state.SetPhase(state.PhasePlan)
 
 	prompt := "use the plan skill to create tickets from the specification"
@@ -212,7 +218,15 @@ func (o *Orchestrator) RunExecute(ctx context.Context, parallel bool) (<-chan Ti
 		o.crushRunner = crush.NewRunner(o.crushPath, o.projectDir)
 	}
 
+	if o.state == nil {
+		o.state = state.NewState()
+	}
 	o.state.SetPhase(state.PhaseExecution)
+
+	if o.ticketManager == nil {
+		ticketsDir := o.projectDir + "/.tickets"
+		o.ticketManager = ticket.NewTicketManager(o.tkPath, ticketsDir)
+	}
 
 	order, err := o.ticketManager.GetExecutionOrder()
 	if err != nil {

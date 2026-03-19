@@ -1,6 +1,10 @@
 package crush
 
-import "testing"
+import (
+	"context"
+	"testing"
+	"time"
+)
 
 func TestEventTypeValues(t *testing.T) {
 	tests := []struct {
@@ -61,5 +65,55 @@ func TestNewRunner(t *testing.T) {
 	}
 	if runner.sessionID != "" {
 		t.Errorf("sessionID should be empty, got %q", runner.sessionID)
+	}
+}
+
+func TestSessionIDOperations(t *testing.T) {
+	runner := NewRunner("crush", "/workspace")
+
+	runner.SetSessionID("test-session-123")
+	if runner.GetSessionID() != "test-session-123" {
+		t.Errorf("GetSessionID() = %q, want %q", runner.GetSessionID(), "test-session-123")
+	}
+}
+
+func TestRunWithSessionNoID(t *testing.T) {
+	runner := NewRunner("crush", "/workspace")
+	ctx := context.Background()
+
+	_, err := runner.RunWithSession(ctx, RunOptions{})
+	if err == nil {
+		t.Error("RunWithSession() should return error when sessionID is empty")
+	}
+}
+
+func TestRunWithContextCancellation(t *testing.T) {
+	runner := NewRunner("echo", "/tmp")
+	ctx, cancel := context.WithCancel(context.Background())
+
+	cancel()
+
+	_, err := runner.Run(ctx, "test", RunOptions{})
+	if err != nil {
+		t.Logf("Run with cancelled context returned: %v", err)
+	}
+}
+
+func TestProcessLifecycle(t *testing.T) {
+	runner := NewRunner("echo", "/tmp")
+	ctx := context.Background()
+
+	events, err := runner.Run(ctx, "hello", RunOptions{})
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	select {
+	case evt := <-events:
+		if evt.Type == EventTypeError {
+			t.Errorf("Received error event: %s", evt.Content)
+		}
+	case <-time.After(5 * time.Second):
+		t.Error("Timeout waiting for event")
 	}
 }
