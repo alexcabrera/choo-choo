@@ -1,6 +1,10 @@
 package orchestrator
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/alexcabrera/choo-choo/internal/state"
+)
 
 func TestNewOrchestrator(t *testing.T) {
 	o := NewOrchestrator("/workspace/myproject")
@@ -15,5 +19,23 @@ func TestNewOrchestrator(t *testing.T) {
 	}
 	if o.tkPath != "ticket" {
 		t.Errorf("tkPath = %q, want %q", o.tkPath, "ticket")
+	}
+}
+
+func TestGetPhaseNilState(t *testing.T) {
+	o := NewOrchestrator("/workspace")
+	phase := o.GetPhase()
+	if phase != state.PhaseInit {
+		t.Errorf("GetPhase() = %v, want %v", phase, state.PhaseInit)
+	}
+}
+
+func TestGetPhaseWithState(t *testing.T) {
+	o := NewOrchestrator("/workspace")
+	o.state = state.NewState()
+	o.state.SetPhase(state.PhaseExecution)
+	phase := o.GetPhase()
+	if phase != state.PhaseExecution {
+		t.Errorf("GetPhase() = %v, want %v", phase, state.PhaseExecution)
 	}
 }

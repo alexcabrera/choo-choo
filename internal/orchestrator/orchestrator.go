@@ -18,3 +18,10 @@ func NewOrchestrator(projectDir string) *Orchestrator {
 		tkPath:     "ticket",
 	}
 }
+
+func (o *Orchestrator) GetPhase() state.Phase {
+	if o.state == nil {
+		return state.PhaseInit
+	}
+	return o.state.Phase
+}
