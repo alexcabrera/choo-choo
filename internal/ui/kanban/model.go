@@ -79,3 +79,30 @@ func (m *KanbanModel) MoveTicket(toCol int) bool {
 
 	return true
 }
+
+func (m *KanbanModel) MoveCursorUp() {
+	if m.cursorRow > 0 {
+		m.cursorRow--
+	}
+}
+
+func (m *KanbanModel) MoveCursorDown() {
+	col := m.columns[m.cursorCol]
+	if m.cursorRow < len(col)-1 {
+		m.cursorRow++
+	}
+}
+
+func (m *KanbanModel) MoveCursorLeft() {
+	if m.cursorCol > 0 {
+		m.cursorCol--
+		m.cursorRow = 0
+	}
+}
+
+func (m *KanbanModel) MoveCursorRight() {
+	if m.cursorCol < 2 {
+		m.cursorCol++
+		m.cursorRow = 0
+	}
+}

@@ -111,3 +111,57 @@ func TestMoveTicketInvalidColumn(t *testing.T) {
 		t.Error("MoveTicket to same column should return false")
 	}
 }
+
+func TestCursorNavigation(t *testing.T) {
+	m := NewKanbanModel()
+	tickets := []ticket.Ticket{
+		{ID: "T-001", Status: ticket.StatusOpen},
+		{ID: "T-002", Status: ticket.StatusOpen},
+		{ID: "T-003", Status: ticket.StatusOpen},
+	}
+	m.SetTickets(tickets)
+
+	m.MoveCursorDown()
+	if m.cursorRow != 1 {
+		t.Errorf("MoveCursorDown: cursorRow = %d, want 1", m.cursorRow)
+	}
+
+	m.MoveCursorDown()
+	if m.cursorRow != 2 {
+		t.Errorf("MoveCursorDown: cursorRow = %d, want 2", m.cursorRow)
+	}
+
+	m.MoveCursorDown()
+	if m.cursorRow != 2 {
+		t.Errorf("MoveCursorDown at limit: cursorRow = %d, want 2 (no change)", m.cursorRow)
+	}
+
+	m.MoveCursorUp()
+	if m.cursorRow != 1 {
+		t.Errorf("MoveCursorUp: cursorRow = %d, want 1", m.cursorRow)
+	}
+}
+
+func TestColumnSwitch(t *testing.T) {
+	m := NewKanbanModel()
+
+	m.MoveCursorRight()
+	if m.cursorCol != ColumnDoing {
+		t.Errorf("MoveCursorRight: cursorCol = %d, want %d", m.cursorCol, ColumnDoing)
+	}
+
+	m.MoveCursorRight()
+	if m.cursorCol != ColumnDone {
+		t.Errorf("MoveCursorRight: cursorCol = %d, want %d", m.cursorCol, ColumnDone)
+	}
+
+	m.MoveCursorRight()
+	if m.cursorCol != ColumnDone {
+		t.Errorf("MoveCursorRight at limit: cursorCol = %d, want %d (no change)", m.cursorCol, ColumnDone)
+	}
+
+	m.MoveCursorLeft()
+	if m.cursorCol != ColumnDoing {
+		t.Errorf("MoveCursorLeft: cursorCol = %d, want %d", m.cursorCol, ColumnDoing)
+	}
+}

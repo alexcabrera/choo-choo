@@ -132,3 +132,35 @@ func (tm *TicketManager) AddNote(id, note string) error {
 	newContent := content + newNote
 	return os.WriteFile(path, []byte(newContent), 0644)
 }
+
+func (tm *TicketManager) GetChildren(parentID string) ([]Ticket, error) {
+	all, err := tm.List()
+	if err != nil {
+		return nil, err
+	}
+
+	var children []Ticket
+	for _, t := range all {
+		if t.Parent == parentID {
+			children = append(children, t)
+		}
+	}
+	return children, nil
+}
+
+func (tm *TicketManager) GetDependencies(id string) ([]Ticket, error) {
+	tk, err := tm.Get(id)
+	if err != nil {
+		return nil, err
+	}
+
+	var deps []Ticket
+	for _, depID := range tk.Dependencies {
+		dep, err := tm.Get(depID)
+		if err != nil {
+			continue
+		}
+		deps = append(deps, *dep)
+	}
+	return deps, nil
+}
