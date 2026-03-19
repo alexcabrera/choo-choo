@@ -47,3 +47,19 @@ func TestRunOptionsDefaults(t *testing.T) {
 		t.Error("RunOptions.Model should default to empty")
 	}
 }
+
+func TestNewRunner(t *testing.T) {
+	runner := NewRunner("/usr/local/bin/crush", "/workspace")
+	if runner == nil {
+		t.Fatal("NewRunner() returned nil")
+	}
+	if runner.crushPath != "/usr/local/bin/crush" {
+		t.Errorf("crushPath = %q, want %q", runner.crushPath, "/usr/local/bin/crush")
+	}
+	if runner.workDir != "/workspace" {
+		t.Errorf("workDir = %q, want %q", runner.workDir, "/workspace")
+	}
+	if runner.sessionID != "" {
+		t.Errorf("sessionID should be empty, got %q", runner.sessionID)
+	}
+}

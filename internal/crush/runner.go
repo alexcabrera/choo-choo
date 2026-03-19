@@ -37,3 +37,16 @@ type RunOptions struct {
 	Yolo  bool
 	Model string
 }
+
+type CrushRunner struct {
+	crushPath string
+	workDir   string
+	sessionID string
+}
+
+func NewRunner(crushPath, workDir string) *CrushRunner {
+	return &CrushRunner{
+		crushPath: crushPath,
+		workDir:   workDir,
+	}
+}
