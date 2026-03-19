@@ -139,3 +139,56 @@ func (r *CrushRunner) SetSessionID(id string) {
 func (r *CrushRunner) GetSessionID() string {
 	return r.sessionID
 }
+
+func (r *CrushRunner) RunWithSession(ctx context.Context, opts RunOptions) (<-chan StreamEvent, error) {
+	if r.sessionID == "" {
+		return nil, fmt.Errorf("no session ID set")
+	}
+
+	args := []string{"run", "--continue", r.sessionID}
+	if opts.Quiet {
+		args = append(args, "--quiet")
+	}
+	if opts.Yolo {
+		args = append(args, "--yolo")
+	}
+	if opts.Model != "" {
+		args = append(args, "--model", opts.Model)
+	}
+
+	cmd := exec.CommandContext(ctx, r.crushPath, args...)
+	cmd.Dir = r.workDir
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create stdout pipe: %w", err)
+	}
+
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create stderr pipe: %w", err)
+	}
+
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("failed to start crush: %w", err)
+	}
+
+	events := make(chan StreamEvent, 100)
+	var wg sync.WaitGroup
+
+	wg.Add(2)
+	go r.readStream(&wg, events, stdout, EventTypeStdout)
+	go r.readStream(&wg, events, stderr, EventTypeStderr)
+
+	go func() {
+		wg.Wait()
+		err := cmd.Wait()
+		if err != nil {
+			events <- StreamEvent{Type: EventTypeError, Content: err.Error(), Time: time.Now()}
+		}
+		events <- StreamEvent{Type: EventTypeDone, Time: time.Now()}
+		close(events)
+	}()
+
+	return events, nil
+}

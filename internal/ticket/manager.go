@@ -164,3 +164,65 @@ func (tm *TicketManager) GetDependencies(id string) ([]Ticket, error) {
 	}
 	return deps, nil
 }
+
+func (tm *TicketManager) GetExecutionOrder() ([][]string, error) {
+	all, err := tm.List()
+	if err != nil {
+		return nil, err
+	}
+
+	depMap := make(map[string][]string)
+	for _, t := range all {
+		depMap[t.ID] = t.Dependencies
+	}
+
+	inDegree := make(map[string]int)
+	for id := range depMap {
+		inDegree[id] = 0
+	}
+	for _, deps := range depMap {
+		for _, dep := range deps {
+			if _, exists := inDegree[dep]; exists {
+				continue
+			}
+		}
+		for _, dep := range deps {
+			if _, exists := depMap[dep]; exists {
+				inDegree[dep]++
+			}
+		}
+	}
+
+	var levels [][]string
+	remaining := make(map[string]bool)
+	for id := range depMap {
+		remaining[id] = true
+	}
+
+	for len(remaining) > 0 {
+		var level []string
+		for id := range remaining {
+			ready := true
+			for _, dep := range depMap[id] {
+				if remaining[dep] {
+					ready = false
+					break
+				}
+			}
+			if ready {
+				level = append(level, id)
+			}
+		}
+
+		if len(level) == 0 {
+			break
+		}
+
+		levels = append(levels, level)
+		for _, id := range level {
+			delete(remaining, id)
+		}
+	}
+
+	return levels, nil
+}
