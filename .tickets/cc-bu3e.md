@@ -1,6 +1,6 @@
 ---
 id: cc-bu3e
-status: open
+status: closed
 deps: [cc-mlnx]
 links: []
 created: 2026-03-19T00:42:06Z
