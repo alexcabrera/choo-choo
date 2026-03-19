@@ -1,6 +1,10 @@
 package popup
 
-import "github.com/alexcabrera/choo-choo/internal/ticket"
+import (
+	tea "charm.land/bubbletea/v2"
+
+	"github.com/alexcabrera/choo-choo/internal/ticket"
+)
 
 type Tab int
 
@@ -102,4 +106,28 @@ func (m *PopupModel) GetActiveTab() Tab {
 
 func (m *PopupModel) GetContent() string {
 	return m.tabs[m.activeTab].Content
+}
+
+func (m *PopupModel) Update(msg tea.Msg) (*PopupModel, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		return m.handleKeyPress(msg)
+	}
+	return m, nil
+}
+
+func (m *PopupModel) handleKeyPress(msg tea.KeyMsg) (*PopupModel, tea.Cmd) {
+	switch msg.String() {
+	case "tab":
+		m.NextTab()
+	case "shift+tab":
+		m.PrevTab()
+	case "up", "k":
+		m.HandleScroll(-1)
+	case "down", "j":
+		m.HandleScroll(1)
+	case "escape", "q":
+		m.Close()
+	}
+	return m, nil
 }

@@ -1,6 +1,9 @@
 package kanban
 
 import (
+	"fmt"
+	"strings"
+
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/alexcabrera/choo-choo/internal/ticket"
@@ -12,10 +15,14 @@ const (
 	ColumnDone
 )
 
+var columnNames = [3]string{"TODO", "DOING", "DONE"}
+
 type KanbanModel struct {
 	columns   [3][]ticket.Ticket
 	cursorCol int
 	cursorRow int
+	width     int
+	height    int
 }
 
 func NewKanbanModel() *KanbanModel {
@@ -24,6 +31,11 @@ func NewKanbanModel() *KanbanModel {
 		cursorCol: 0,
 		cursorRow: 0,
 	}
+}
+
+func (m *KanbanModel) SetSize(width, height int) {
+	m.width = width
+	m.height = height
 }
 
 func (m *KanbanModel) Update(msg tea.Msg) (*KanbanModel, tea.Cmd) {
@@ -139,4 +151,40 @@ func (m *KanbanModel) GetSelectedTicketID() string {
 		return ""
 	}
 	return tk.ID
+}
+
+func (m *KanbanModel) View() tea.View {
+	var b strings.Builder
+
+	colWidth := m.width / 3
+	if colWidth < 20 {
+		colWidth = 20
+	}
+
+	for colIdx, col := range m.columns {
+		header := columnNames[colIdx]
+		if colIdx == m.cursorCol {
+			header = "> " + header + " <"
+		}
+		b.WriteString(fmt.Sprintf("%-*s\n", colWidth, header))
+		b.WriteString(strings.Repeat("-", colWidth) + "\n")
+
+		for rowIdx, t := range col {
+			prefix := "  "
+			if colIdx == m.cursorCol && rowIdx == m.cursorRow {
+				prefix = "> "
+			}
+			line := fmt.Sprintf("%s%s: %s", prefix, t.ID, t.Title)
+			if len(line) > colWidth {
+				line = line[:colWidth-3] + "..."
+			}
+			b.WriteString(line + "\n")
+		}
+
+		if colIdx < 2 {
+			b.WriteString("\n")
+		}
+	}
+
+	return tea.NewView(b.String())
 }

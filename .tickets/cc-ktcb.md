@@ -1,6 +1,6 @@
 ---
 id: cc-ktcb
-status: open
+status: closed
 deps: [cc-xl00, cc-mqta, cc-b0g6]
 links: []
 created: 2026-03-19T00:40:52Z

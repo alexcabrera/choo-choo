@@ -1,6 +1,6 @@
 ---
 id: cc-qihu
-status: open
+status: closed
 deps: [cc-nkeg]
 links: []
 created: 2026-03-18T23:22:02Z

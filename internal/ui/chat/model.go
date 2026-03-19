@@ -1,6 +1,9 @@
 package chat
 
-import "time"
+import (
+	tea "charm.land/bubbletea/v2"
+	"time"
+)
 
 type Role int
 
@@ -25,6 +28,8 @@ type ChatMessage struct {
 	Content   string
 	Timestamp time.Time
 }
+
+type spinnerTickMsg struct{}
 
 type ChatModel struct {
 	messages     []ChatMessage
@@ -111,4 +116,39 @@ func (m *ChatModel) SendMessage() string {
 	m.AddMessage(RoleUser, content)
 	m.input = ""
 	return content
+}
+
+func (m *ChatModel) IsStreaming() bool {
+	return m.streaming
+}
+
+func (m *ChatModel) Update(msg tea.Msg) (*ChatModel, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		return m.handleKeyPress(msg)
+	case spinnerTickMsg:
+		m.HandleSpinnerTick()
+		if m.streaming {
+			return m, tea.Tick(100*time.Millisecond, func(t time.Time) tea.Msg {
+				return spinnerTickMsg{}
+			})
+		}
+	}
+	return m, nil
+}
+
+func (m *ChatModel) handleKeyPress(msg tea.KeyMsg) (*ChatModel, tea.Cmd) {
+	switch msg.String() {
+	case "up":
+		m.HandleViewportScroll(-1)
+	case "down":
+		m.HandleViewportScroll(1)
+	case "enter":
+		m.SendMessage()
+	case "backspace":
+		m.HandleTextInput("backspace")
+	default:
+		m.HandleTextInput(msg.String())
+	}
+	return m, nil
 }

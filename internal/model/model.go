@@ -1,6 +1,10 @@
 package model
 
 import (
+	"fmt"
+	"strings"
+	"time"
+
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/alexcabrera/choo-choo/internal/orchestrator"
@@ -18,6 +22,12 @@ const (
 	FocusPreview
 	FocusPopup
 )
+
+type initCompleteMsg struct {
+	err error
+}
+
+type spinnerTickMsg struct{}
 
 type Model struct {
 	orchestrator *orchestrator.Orchestrator
@@ -52,17 +62,43 @@ func InitialModel(orch *orchestrator.Orchestrator) Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	return nil
+	return tea.Batch(
+		func() tea.Msg {
+			if m.orchestrator != nil {
+				err := m.orchestrator.Init()
+				return initCompleteMsg{err: err}
+			}
+			return initCompleteMsg{err: nil}
+		},
+	)
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case initCompleteMsg:
+		if msg.err != nil {
+			m.errors = append(m.errors, msg.err.Error())
+		}
+		m.loading = false
+		return m, nil
+
 	case tea.KeyMsg:
 		return m.handleKeyPress(msg)
 
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		if m.kanban != nil {
+			m.kanban.SetSize(m.width, m.height)
+		}
+		return m, nil
+
+	case spinnerTickMsg:
+		if m.chat != nil && m.chat.IsStreaming() {
+			return m, tea.Tick(100*time.Millisecond, func(t time.Time) tea.Msg {
+				return spinnerTickMsg{}
+			})
+		}
 		return m, nil
 	}
 
@@ -70,25 +106,135 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.popup != nil && m.popup.IsOpen() {
+		newPopup, cmd := m.popup.Update(msg)
+		m.popup = newPopup
+		return m, cmd
+	}
+
 	switch msg.String() {
 	case "ctrl+c", "q":
 		return m, tea.Quit
+	case "tab":
+		m.cycleFocus()
+	case "1":
+		m.focus = FocusChat
+	case "2":
+		m.focus = FocusKanban
 	}
 
 	return m, nil
 }
 
+func (m *Model) cycleFocus() {
+	switch m.focus {
+	case FocusChat:
+		m.focus = FocusKanban
+	case FocusKanban:
+		m.focus = FocusPreview
+	case FocusPreview:
+		m.focus = FocusChat
+	default:
+		m.focus = FocusChat
+	}
+}
+
 func (m Model) View() tea.View {
+	if m.popup != nil && m.popup.IsOpen() {
+		baseContent := m.viewForPhase()
+		return tea.NewView(m.renderPopupOverlay(baseContent.Content))
+	}
+	return m.viewForPhase()
+}
+
+func (m Model) viewForPhase() tea.View {
 	switch m.phase {
 	case state.PhaseInit:
-		return tea.NewView("choo-choo - Press 'q' to quit\n\nNo project initialized.")
+		return m.viewInit()
 	case state.PhaseDesign:
-		return tea.NewView("choo-choo - Design Phase\n\nTODO: Implement design UI")
+		return m.viewDesign()
 	case state.PhasePlan:
-		return tea.NewView("choo-choo - Plan Phase\n\nTODO: Implement plan UI")
+		return m.viewPlan()
 	case state.PhaseExecution:
-		return tea.NewView("choo-choo - Execute Phase\n\nTODO: Implement kanban UI")
+		return m.viewExecution()
 	default:
-		return tea.NewView("choo-choo\n\nTODO: Implement UI")
+		return tea.NewView("choo-choo\n\nUnknown phase")
 	}
+}
+
+func (m Model) viewInit() tea.View {
+	var b strings.Builder
+	b.WriteString("choo-choo - Initialization\n\n")
+	if m.loading {
+		b.WriteString("Loading...")
+	} else if len(m.errors) > 0 {
+		b.WriteString("Errors:\n")
+		for _, e := range m.errors {
+			b.WriteString(fmt.Sprintf("  - %s\n", e))
+		}
+	} else {
+		b.WriteString("Ready. Press '1' for chat, '2' for kanban.")
+	}
+	return tea.NewView(b.String())
+}
+
+func (m Model) viewDesign() tea.View {
+	var b strings.Builder
+	b.WriteString("choo-choo - Design Phase\n\n")
+	b.WriteString("Focus: ")
+	if m.focus == FocusChat && m.chat != nil {
+		b.WriteString("Chat\n")
+		b.WriteString(fmt.Sprintf("Messages: %d\n", len(m.chat.GetInput())))
+	} else {
+		b.WriteString("Other\n")
+	}
+	return tea.NewView(b.String())
+}
+
+func (m Model) viewPlan() tea.View {
+	var b strings.Builder
+	b.WriteString("choo-choo - Plan Phase\n\n")
+	b.WriteString("Focus: ")
+	switch m.focus {
+	case FocusChat:
+		b.WriteString("Chat")
+	case FocusKanban:
+		b.WriteString("Kanban")
+	case FocusPreview:
+		b.WriteString("Preview")
+	}
+	b.WriteString("\n")
+	return tea.NewView(b.String())
+}
+
+func (m Model) viewExecution() tea.View {
+	if m.kanban != nil {
+		return m.kanban.View()
+	}
+	return tea.NewView("choo-choo - Execution Phase\n\nNo kanban loaded")
+}
+
+func (m Model) renderPopupOverlay(baseContent string) string {
+	if m.popup == nil {
+		return baseContent
+	}
+
+	popupWidth := m.width * 2 / 3
+	if popupWidth < 40 {
+		popupWidth = 40
+	}
+	popupHeight := m.height * 2 / 3
+	if popupHeight < 10 {
+		popupHeight = 10
+	}
+
+	var b strings.Builder
+	b.WriteString(baseContent)
+	b.WriteString("\n\n")
+
+	header := fmt.Sprintf("=== %s ===", m.popup.GetActiveTab().String())
+	b.WriteString(header + "\n")
+	b.WriteString(m.popup.GetContent())
+
+	return b.String()
 }
