@@ -48,6 +48,9 @@ func New() Model {
 		focus:   FocusChat,
 		loading: false,
 		errors:  []string{},
+		chat:    chat.NewChatModel(),
+		kanban:  kanban.NewKanbanModel(),
+		popup:   popup.NewPopupModel(),
 	}
 }
 
@@ -174,7 +177,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	}
 
-	switch msg.String() {
+	keyStr := msg.String()
+	switch keyStr {
 	case "ctrl+c", "q":
 		return m, tea.Quit
 	case "tab":
@@ -183,6 +187,21 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.focus = FocusChat
 	case "2":
 		m.focus = FocusKanban
+	default:
+		switch m.focus {
+		case FocusChat:
+			if m.chat != nil {
+				newChat, cmd := m.chat.Update(msg)
+				m.chat = newChat
+				return m, cmd
+			}
+		case FocusKanban:
+			if m.kanban != nil {
+				newKanban, cmd := m.kanban.Update(msg)
+				m.kanban = newKanban
+				return m, cmd
+			}
+		}
 	}
 
 	return m, nil
@@ -235,7 +254,22 @@ func (m Model) viewInit() tea.View {
 			b.WriteString(fmt.Sprintf("  - %s\n", e))
 		}
 	} else {
-		b.WriteString("Ready. Press '1' for chat, '2' for kanban.")
+		switch m.focus {
+		case FocusChat:
+			b.WriteString("[Chat] [Kanban] (press 1/2 to switch, q to quit)\n\n")
+			if m.chat != nil {
+				chatView := m.chat.View()
+				b.WriteString(chatView.Content)
+			}
+		case FocusKanban:
+			b.WriteString("[Chat] [Kanban] (press 1/2 to switch, q to quit)\n\n")
+			if m.kanban != nil {
+				kanbanView := m.kanban.View()
+				b.WriteString(kanbanView.Content)
+			}
+		default:
+			b.WriteString("Ready. Press '1' for chat, '2' for kanban.")
+		}
 	}
 	return tea.NewView(b.String())
 }
