@@ -106,3 +106,11 @@ func (m *KanbanModel) MoveCursorRight() {
 		m.cursorRow = 0
 	}
 }
+
+func (m *KanbanModel) GetSelectedTicketID() string {
+	tk := m.SelectedTicket()
+	if tk == nil {
+		return ""
+	}
+	return tk.ID
+}
