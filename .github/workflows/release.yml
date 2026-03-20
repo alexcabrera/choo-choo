@@ -30,3 +30,6 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # For automated Homebrew tap updates, create a PAT with repo scope
+          # and add it as a repository secret named GH_PAT, then uncomment:
+          # GH_PAT: ${{ secrets.GH_PAT }}
