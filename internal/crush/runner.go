@@ -2,6 +2,7 @@ package crush
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os/exec"
@@ -140,12 +141,42 @@ func (r *CrushRunner) GetSessionID() string {
 	return r.sessionID
 }
 
-func (r *CrushRunner) RunWithSession(ctx context.Context, opts RunOptions) (<-chan StreamEvent, error) {
+func (r *CrushRunner) FetchLastSessionID() (string, error) {
+	cmd := exec.Command(r.crushPath, "session", "last", "--json")
+	cmd.Dir = r.workDir
+
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get last session: %w", err)
+	}
+
+	var response struct {
+		Meta struct {
+			ID string `json:"id"`
+		} `json:"meta"`
+	}
+	if err := json.Unmarshal(output, &response); err != nil {
+		return "", fmt.Errorf("failed to parse session JSON: %w", err)
+	}
+
+	return response.Meta.ID, nil
+}
+
+func (r *CrushRunner) CaptureLastSessionID() error {
+	id, err := r.FetchLastSessionID()
+	if err != nil {
+		return err
+	}
+	r.sessionID = id
+	return nil
+}
+
+func (r *CrushRunner) RunWithSession(ctx context.Context, prompt string, opts RunOptions) (<-chan StreamEvent, error) {
 	if r.sessionID == "" {
 		return nil, fmt.Errorf("no session ID set")
 	}
 
-	args := []string{"run", "--continue", r.sessionID}
+	args := []string{"run", "--session", r.sessionID, prompt}
 	if opts.Quiet {
 		args = append(args, "--quiet")
 	}

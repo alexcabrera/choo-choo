@@ -1,5 +1,5 @@
 # Binaries
-choo-choo
+/choo-choo
 *.exe
 *.exe~
 *.dll

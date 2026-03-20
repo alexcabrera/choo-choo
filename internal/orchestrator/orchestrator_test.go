@@ -138,3 +138,37 @@ func TestValidationResult(t *testing.T) {
 		t.Error("GetValidationResult() should return error when ticketManager is nil")
 	}
 }
+
+func TestGetSessionIDNoRunner(t *testing.T) {
+	o := NewOrchestrator("/workspace")
+	if o.GetSessionID() != "" {
+		t.Error("GetSessionID() should return empty string when no runner")
+	}
+}
+
+func TestCaptureSessionIDNoRunner(t *testing.T) {
+	o := NewOrchestrator("/workspace")
+	err := o.CaptureSessionID()
+	if err == nil {
+		t.Error("CaptureSessionID() should return error when no runner")
+	}
+}
+
+func TestSendMessageNoRunner(t *testing.T) {
+	o := NewOrchestrator("/workspace")
+	ctx := context.Background()
+	_, err := o.SendMessage(ctx, "test message")
+	if err == nil {
+		t.Error("SendMessage() should return error when no runner")
+	}
+}
+
+func TestSendMessageNoSession(t *testing.T) {
+	o := NewOrchestrator("/workspace")
+	o.crushPath = "echo"
+	ctx := context.Background()
+	_, err := o.SendMessage(ctx, "test message")
+	if err == nil {
+		t.Error("SendMessage() should return error when no session ID available")
+	}
+}

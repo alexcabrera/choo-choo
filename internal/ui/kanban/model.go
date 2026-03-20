@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss"
 
 	"github.com/alexcabrera/choo-choo/internal/ticket"
 )
@@ -15,7 +16,14 @@ const (
 	ColumnDone
 )
 
-var columnNames = [3]string{"TODO", "DOING", "DONE"}
+var (
+	todoColor    = lipgloss.Color("#6B7280")
+	doingColor   = lipgloss.Color("#F59E0B")
+	doneColor    = lipgloss.Color("#10B981")
+
+	columnColors = [3]lipgloss.Color{todoColor, doingColor, doneColor}
+	columnNames  = [3]string{"TODO", "DOING", "DONE"}
+)
 
 type KanbanModel struct {
 	columns   [3][]ticket.Ticket
@@ -56,6 +64,8 @@ func (m *KanbanModel) handleKeyPress(msg tea.KeyMsg) (*KanbanModel, tea.Cmd) {
 		m.MoveCursorLeft()
 	case "right", "l":
 		m.MoveCursorRight()
+	case "enter":
+		return m, nil
 	}
 	return m, nil
 }
@@ -70,6 +80,40 @@ func (m *KanbanModel) SetTickets(tickets []ticket.Ticket) {
 			m.columns[ColumnDoing] = append(m.columns[ColumnDoing], t)
 		case ticket.StatusClosed:
 			m.columns[ColumnDone] = append(m.columns[ColumnDone], t)
+		}
+	}
+}
+
+func (m *KanbanModel) UpdateTicketStatus(ticketID string, status string) {
+	var targetCol int
+	var newStatus ticket.Status
+
+	switch status {
+	case "executing":
+		targetCol = ColumnDoing
+		newStatus = ticket.StatusInProgress
+	case "completed", "failed":
+		targetCol = ColumnDone
+		newStatus = ticket.StatusClosed
+	default:
+		return
+	}
+
+	for fromCol := range 3 {
+		for i, t := range m.columns[fromCol] {
+			if t.ID == ticketID {
+				if fromCol == targetCol {
+					m.columns[fromCol][i].Status = newStatus
+					return
+				}
+				m.columns[fromCol] = append(m.columns[fromCol][:i], m.columns[fromCol][i+1:]...)
+				t.Status = newStatus
+				m.columns[targetCol] = append(m.columns[targetCol], t)
+				if m.cursorCol == fromCol && m.cursorRow >= len(m.columns[fromCol]) && len(m.columns[fromCol]) > 0 {
+					m.cursorRow = len(m.columns[fromCol]) - 1
+				}
+				return
+			}
 		}
 	}
 }
@@ -153,38 +197,119 @@ func (m *KanbanModel) GetSelectedTicketID() string {
 	return tk.ID
 }
 
+func (m *KanbanModel) GetProgress() (total int, done int) {
+	total = len(m.columns[ColumnTodo]) + len(m.columns[ColumnDoing]) + len(m.columns[ColumnDone])
+	done = len(m.columns[ColumnDone])
+	return total, done
+}
+
 func (m *KanbanModel) View() tea.View {
+	if m.width < 60 {
+		return tea.NewView("Terminal too narrow. Please resize to at least 60 columns.")
+	}
+
+	colWidth := min((m.width-6)/3, 30)
+
+
+	columnViews := make([]string, 3)
+	for i := range m.columns {
+		columnViews[i] = m.renderColumn(i, colWidth)
+	}
+
+	return tea.NewView(lipgloss.JoinHorizontal(lipgloss.Top, columnViews...))
+}
+
+func (m *KanbanModel) renderColumn(colIdx int, width int) string {
 	var b strings.Builder
 
-	colWidth := m.width / 3
-	if colWidth < 20 {
-		colWidth = 20
+	color := columnColors[colIdx]
+
+	name := columnNames[colIdx]
+	count := len(m.columns[colIdx])
+	headerText := fmt.Sprintf("%s (%d)", name, count)
+
+	header := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(color).
+		Padding(0, 1).
+		Render(headerText)
+
+	b.WriteString(header)
+	b.WriteString("\n")
+
+	sep := lipgloss.NewStyle().
+		Foreground(color).
+		Render(strings.Repeat("─", width-2))
+	b.WriteString(sep)
+	b.WriteString("\n")
+
+	contentHeight := max(m.height-6, 5)
+
+
+	lines := 0
+	for rowIdx, t := range m.columns[colIdx] {
+		if lines >= contentHeight {
+			break
+		}
+
+		cardText := m.renderTicketCard(t, colIdx, rowIdx, width-4)
+		b.WriteString(cardText)
+		b.WriteString("\n")
+		lines++
 	}
 
-	for colIdx, col := range m.columns {
-		header := columnNames[colIdx]
-		if colIdx == m.cursorCol {
-			header = "> " + header + " <"
-		}
-		b.WriteString(fmt.Sprintf("%-*s\n", colWidth, header))
-		b.WriteString(strings.Repeat("-", colWidth) + "\n")
-
-		for rowIdx, t := range col {
-			prefix := "  "
-			if colIdx == m.cursorCol && rowIdx == m.cursorRow {
-				prefix = "> "
-			}
-			line := fmt.Sprintf("%s%s: %s", prefix, t.ID, t.Title)
-			if len(line) > colWidth {
-				line = line[:colWidth-3] + "..."
-			}
-			b.WriteString(line + "\n")
-		}
-
-		if colIdx < 2 {
-			b.WriteString("\n")
-		}
+	if len(m.columns[colIdx]) == 0 {
+		empty := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#4A4A4A")).
+			Italic(true).
+			Padding(1, 1).
+			Render("No tickets")
+		b.WriteString(empty)
 	}
 
-	return tea.NewView(b.String())
+	columnBox := lipgloss.NewStyle().
+		Width(width).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(color).
+		Padding(0, 1).
+		Render(b.String())
+
+	return columnBox
+}
+
+func (m *KanbanModel) renderTicketCard(t ticket.Ticket, colIdx, rowIdx, maxWidth int) string {
+	isSelected := colIdx == m.cursorCol && rowIdx == m.cursorRow
+
+	var typeIcon string
+	switch t.Type {
+	case ticket.TypeEpic:
+		typeIcon = "📦"
+	case ticket.TypeStory:
+		typeIcon = "📋"
+	case ticket.TypeTask:
+		typeIcon = "✓"
+	default:
+		typeIcon = "•"
+	}
+
+	title := t.Title
+	if len(title) > maxWidth-8 {
+		title = title[:maxWidth-11] + "..."
+	}
+
+	cardText := fmt.Sprintf("%s %s: %s", typeIcon, t.ID, title)
+
+	if isSelected {
+		return lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FAFAFA")).
+			Background(lipgloss.Color("#3D3D5C")).
+			Bold(true).
+			Padding(0, 1).
+			Render("▶ " + cardText)
+	}
+
+	return lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#9CA3AF")).
+		Padding(0, 1).
+		Render("  " + cardText)
 }

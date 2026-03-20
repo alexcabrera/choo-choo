@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/alexcabrera/choo-choo/internal/crush"
@@ -19,6 +18,7 @@ type Orchestrator struct {
 	tkPath        string
 	ticketManager *ticket.TicketManager
 	crushRunner   *crush.CrushRunner
+	sequential    bool
 }
 
 func NewOrchestrator(projectDir string) *Orchestrator {
@@ -29,11 +29,11 @@ func NewOrchestrator(projectDir string) *Orchestrator {
 	}
 }
 
-func (o *Orchestrator) Init() error {
-	if err := o.verifyTools(); err != nil {
-		return err
-	}
+func (o *Orchestrator) SetSequential(sequential bool) {
+	o.sequential = sequential
+}
 
+func (o *Orchestrator) Init() error {
 	if err := o.createDirectories(); err != nil {
 		return err
 	}
@@ -42,16 +42,6 @@ func (o *Orchestrator) Init() error {
 		return err
 	}
 
-	return nil
-}
-
-func (o *Orchestrator) verifyTools() error {
-	if _, err := exec.LookPath(o.crushPath); err != nil {
-		return fmt.Errorf("crush not found in PATH: %w", err)
-	}
-	if _, err := exec.LookPath(o.tkPath); err != nil {
-		return fmt.Errorf("tk not found in PATH: %w", err)
-	}
 	return nil
 }
 
@@ -95,6 +85,20 @@ func (o *Orchestrator) GetPhase() state.Phase {
 		return state.PhaseInit
 	}
 	return o.state.Phase
+}
+
+func (o *Orchestrator) SetPhase(phase state.Phase) {
+	if o.state != nil {
+		o.state.SetPhase(phase)
+	}
+}
+
+func (o *Orchestrator) PersistState() error {
+	if o.state == nil {
+		return nil
+	}
+	statePath := filepath.Join(o.projectDir, "STATE.md")
+	return o.state.Save(statePath)
 }
 
 func (o *Orchestrator) GetTickets() ([]ticket.Ticket, error) {
@@ -213,7 +217,7 @@ type TicketEvent struct {
 	Error    error
 }
 
-func (o *Orchestrator) RunExecute(ctx context.Context, parallel bool) (<-chan TicketEvent, error) {
+func (o *Orchestrator) RunExecute(ctx context.Context) (<-chan TicketEvent, error) {
 	if o.crushRunner == nil {
 		o.crushRunner = crush.NewRunner(o.crushPath, o.projectDir)
 	}
@@ -239,10 +243,10 @@ func (o *Orchestrator) RunExecute(ctx context.Context, parallel bool) (<-chan Ti
 		defer close(events)
 
 		for _, level := range order {
-			if parallel {
-				o.executeLevelParallel(ctx, level, events)
-			} else {
+			if o.sequential {
 				o.executeLevelSequential(ctx, level, events)
+			} else {
+				o.executeLevelParallel(ctx, level, events)
 			}
 		}
 	}()
@@ -297,4 +301,77 @@ func (o *Orchestrator) executeLevelParallel(ctx context.Context, level []string,
 			}
 		}
 	}
+}
+
+func (o *Orchestrator) RunVerify(ctx context.Context) (<-chan crush.StreamEvent, error) {
+	if o.crushRunner == nil {
+		o.crushRunner = crush.NewRunner(o.crushPath, o.projectDir)
+	}
+
+	if o.state == nil {
+		o.state = state.NewState()
+	}
+	o.state.SetPhase(state.PhaseVerify)
+
+	prompt := "use the verify skill to verify all completed tickets"
+
+	events, err := o.crushRunner.Run(ctx, prompt, crush.RunOptions{Quiet: false})
+	if err != nil {
+		return nil, fmt.Errorf("failed to start verify phase: %w", err)
+	}
+
+	return events, nil
+}
+
+func (o *Orchestrator) RunCloseGaps(ctx context.Context) (<-chan crush.StreamEvent, error) {
+	if o.crushRunner == nil {
+		o.crushRunner = crush.NewRunner(o.crushPath, o.projectDir)
+	}
+
+	if o.state == nil {
+		o.state = state.NewState()
+	}
+	o.state.SetPhase(state.PhaseCloseGaps)
+
+	prompt := "use the close-gaps skill to fix any gaps found during verification"
+
+	events, err := o.crushRunner.Run(ctx, prompt, crush.RunOptions{Quiet: false})
+	if err != nil {
+		return nil, fmt.Errorf("failed to start close-gaps phase: %w", err)
+	}
+
+	return events, nil
+}
+
+func (o *Orchestrator) SendMessage(ctx context.Context, message string) (<-chan crush.StreamEvent, error) {
+	if o.crushRunner == nil {
+		o.crushRunner = crush.NewRunner(o.crushPath, o.projectDir)
+	}
+
+	if o.crushRunner.GetSessionID() == "" {
+		if err := o.crushRunner.CaptureLastSessionID(); err != nil {
+			return nil, fmt.Errorf("no session to continue: %w", err)
+		}
+	}
+
+	events, err := o.crushRunner.RunWithSession(ctx, message, crush.RunOptions{Quiet: false})
+	if err != nil {
+		return nil, fmt.Errorf("failed to send message: %w", err)
+	}
+
+	return events, nil
+}
+
+func (o *Orchestrator) CaptureSessionID() error {
+	if o.crushRunner == nil {
+		return fmt.Errorf("no crush runner available")
+	}
+	return o.crushRunner.CaptureLastSessionID()
+}
+
+func (o *Orchestrator) GetSessionID() string {
+	if o.crushRunner == nil {
+		return ""
+	}
+	return o.crushRunner.GetSessionID()
 }

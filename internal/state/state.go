@@ -63,7 +63,7 @@ func (s *State) Save(path string) error {
 	sb.WriteString("---\n")
 
 	encoder := yaml.NewEncoder(&sb)
-	if err := encoder.Encode(map[string]interface{}{
+	if err := encoder.Encode(map[string]any{
 		"phase":     s.Phase,
 		"epic":      s.Epic,
 		"focus":     s.Focus,

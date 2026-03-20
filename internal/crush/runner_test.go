@@ -81,7 +81,7 @@ func TestRunWithSessionNoID(t *testing.T) {
 	runner := NewRunner("crush", "/workspace")
 	ctx := context.Background()
 
-	_, err := runner.RunWithSession(ctx, RunOptions{})
+	_, err := runner.RunWithSession(ctx, "test prompt", RunOptions{})
 	if err == nil {
 		t.Error("RunWithSession() should return error when sessionID is empty")
 	}
