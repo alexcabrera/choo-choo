@@ -18,6 +18,16 @@ Built with [bubbletea](https://github.com/charmbracelet/bubbletea) from the [Cha
 
 ## Installation
 
+### macOS (Homebrew)
+
+```bash
+brew install alexcabrera/tap/choo-choo
+```
+
+### All Other Platforms (Go Install)
+
+Requires Go 1.21+:
+
 ```bash
 go install github.com/alexcabrera/choo-choo/cmd/choo-choo@latest
 ```
